@@ -21,10 +21,13 @@ type longestMatch struct {
 func Split(dict Dictionary, str string) []string {
 	l := &longestMatch{}
 
+	str = strings.Replace(str, "ํา", "ำ", -1)
+
 	mapSegments := l.Match(dict, str)
 
 	segments := make([]string, len(mapSegments))
 	i := 0
+
 	for k, _ := range mapSegments {
 		segments[i] = k
 		i++
@@ -55,7 +58,7 @@ func (m *longestMatch) removeSpecialCharFast(str string) string {
 		"\"", " ", "-", " ", ")", " ", "(", " ", "{", " ", "}", " ",
 		"...", "", "..", "", "…", "", ",", " ", ":", " ", "|", " ",
 		"?", " ", "[", " ", "]", " ", "\\", " ", "\r", " ", "\r\n",
-		" ", "\n", " ", "*", "", "\t", "",
+		" ", "\n", " ", "*", "", "\t", "", ".", " ", "|", " ",
 	)
 
 	return r.Replace(str)
@@ -128,7 +131,20 @@ func (m *longestMatch) searchLeft(dict Dictionary) {
 
 		if len(m.sentence) == 0 {
 			if m.match == "" {
-				matches = maximumMatch(dict, fullSentence)
+
+				remain := m.segment[len(m.match):]
+
+				if len(remain) > 200 {
+					if len(matches) != 0 {
+						remain = matches[len(matches)-1] + remain
+						matches = matches[:len(matches)]
+					}
+
+					matches = append(matches, maximumMatch(dict, remain)...)
+				} else {
+					matches = maximumMatch(dict, fullSentence)
+				}
+
 				m.match = ""
 				m.segment = ""
 				m.isThai = true
