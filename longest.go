@@ -111,42 +111,39 @@ func (m *longestMatch) addLeftSegment(segments ...string) {
 func (m *longestMatch) searchLeft(dict Dictionary) {
 	m.isThai = true
 	fullSentence := m.sentence
+	matches := []string{}
 
-	for {
-		for len(m.sentence) > 0 {
-			m.ch, m.size = utf8.DecodeRuneInString(m.sentence)
-			m.sentence = m.sentence[m.size:]
+	for len(m.sentence) > 0 {
+		m.ch, m.size = utf8.DecodeRuneInString(m.sentence)
+		m.sentence = m.sentence[m.size:]
 
-			m.segment += string(m.ch)
-			if m.isThai && utf8.RuneLen(m.ch) < 3 {
-				m.isThai = false
-			}
-
-			if m.isThai && dict.Exist(m.segment) {
-				m.match = m.segment
-			}
-
-			if len(m.sentence) == 0 {
-				if m.match == "" {
-					m.addLeftSegment(maximumMatch(dict, fullSentence)...)
-					// m.leftSegments = append(m.leftSegments, maximumMatch(dict, m.segment)...)
-					m.match = ""
-					m.segment = ""
-					m.isThai = true
-					return
-				} else {
-					m.addLeftSegment(m.match)
-					// m.leftSegments = append(m.leftSegments, m.match)
-				}
-			}
+		m.segment += string(m.ch)
+		if m.isThai && utf8.RuneLen(m.ch) < 3 {
+			m.isThai = false
 		}
 
-		m.sentence = m.segment[len(m.match):]
-		m.match = ""
-		m.segment = ""
-		m.isThai = true
-		if m.sentence == "" {
-			break
+		if m.isThai && dict.Exist(m.segment) {
+			m.match = m.segment
+		}
+
+		if len(m.sentence) == 0 {
+			if m.match == "" {
+				matches = maximumMatch(dict, fullSentence)
+				m.match = ""
+				m.segment = ""
+				m.isThai = true
+				// m.leftSegments = append(m.leftSegments, maximumMatch(dict, m.segment)...)
+				break
+			} else {
+				matches = append(matches, m.match)
+				// m.addLeftSegment(m.match)
+				m.sentence = m.segment[len(m.match):]
+				m.match = ""
+				m.segment = ""
+				m.isThai = true
+				// m.leftSegments = append(m.leftSegments, m.match)
+			}
 		}
 	}
+	m.addLeftSegment(matches...)
 }
