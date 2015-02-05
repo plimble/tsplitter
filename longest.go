@@ -58,7 +58,7 @@ func (m *longestMatch) removeSpecialCharFast(str string) string {
 		"\"", " ", "-", " ", ")", " ", "(", " ", "{", " ", "}", " ",
 		"...", "", "..", "", "…", "", ",", " ", ":", " ", "|", " ",
 		"?", " ", "[", " ", "]", " ", "\\", " ", "\r", " ", "\r\n",
-		" ", "\n", " ", "*", "", "\t", "", ".", " ", "|", " ",
+		" ", "\n", " ", "*", "", "\t", "", "|", " ", "/", " ", "+", " ",
 	)
 
 	return r.Replace(str)
@@ -113,7 +113,6 @@ func (m *longestMatch) addLeftSegment(segments ...string) {
 
 func (m *longestMatch) searchLeft(dict Dictionary) {
 	m.isThai = true
-	fullSentence := m.sentence
 	matches := []string{}
 
 	for len(m.sentence) > 0 {
@@ -121,7 +120,7 @@ func (m *longestMatch) searchLeft(dict Dictionary) {
 		m.sentence = m.sentence[m.size:]
 
 		m.segment += string(m.ch)
-		if m.isThai && utf8.RuneLen(m.ch) < 3 {
+		if m.isThai && !isThaiChar(m.ch) {
 			m.isThai = false
 		}
 
@@ -131,18 +130,14 @@ func (m *longestMatch) searchLeft(dict Dictionary) {
 
 		if len(m.sentence) == 0 {
 			if m.match == "" {
-
-				remain := m.segment[len(m.match):]
-
-				if len(remain) > 200 {
-					if len(matches) != 0 {
-						remain = matches[len(matches)-1] + remain
-						matches = matches[:len(matches)]
+				if m.isThai {
+					if len(matches) > 0 {
+						m.segment = matches[len(matches)-1] + m.segment[len(m.match):]
+						matches = matches[:len(matches)-1]
 					}
-
-					matches = append(matches, maximumMatch(dict, remain)...)
+					matches = append(matches, maximumMatch(dict, m.segment)...)
 				} else {
-					matches = maximumMatch(dict, fullSentence)
+					matches = append(matches, m.segment)
 				}
 
 				m.match = ""
@@ -151,7 +146,9 @@ func (m *longestMatch) searchLeft(dict Dictionary) {
 				// m.leftSegments = append(m.leftSegments, maximumMatch(dict, m.segment)...)
 				break
 			} else {
-				matches = append(matches, m.match)
+				if utf8.RuneCount([]byte(m.match)) > 1 {
+					matches = append(matches, m.match)
+				}
 				// m.addLeftSegment(m.match)
 				m.sentence = m.segment[len(m.match):]
 				m.match = ""
@@ -162,4 +159,8 @@ func (m *longestMatch) searchLeft(dict Dictionary) {
 		}
 	}
 	m.addLeftSegment(matches...)
+}
+
+func isThaiChar(ch rune) bool {
+	return ch >= 'ก' && ch <= '๛' || ch == '.'
 }
