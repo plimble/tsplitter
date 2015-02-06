@@ -1,6 +1,7 @@
 package tsplitter
 
 import (
+	"fmt"
 
 	// "fmt"
 	"strings"
@@ -28,6 +29,16 @@ func (w *WordBreak) toArray() {
 	}
 }
 
+func (w *WordBreak) AddWordAndUnknown(words []string, unknown string) {
+	for _, v := range words {
+		w.mapWord[v] = struct{}{}
+	}
+
+	if unknown != "" {
+		w.mapUnknown[unknown] = struct{}{}
+	}
+}
+
 func Split(dict Dictionary, str string) *WordBreak {
 
 	str = strings.Replace(str, "ํา", "ำ", -1)
@@ -35,18 +46,19 @@ func Split(dict Dictionary, str string) *WordBreak {
 	str = removeSpecialChar(str)
 	sentences := chunkStrings(str)
 
-	wb := &WordBreak{
+	w := &WordBreak{
 		mapWord:    make(map[string]struct{}),
 		mapUnknown: make(map[string]struct{}),
 	}
 
 	for _, sentence := range sentences {
-		wordbreakLongest(dict, sentence, wb)
+		fmt.Println(sentence)
+		w.AddWordAndUnknown(wordbreakLongest(dict, sentence))
 	}
 
-	wb.toArray()
+	w.toArray()
 
-	return wb
+	return w
 }
 
 func removeSpecialChar(str string) string {
@@ -69,23 +81,49 @@ func isThaiChar(ch rune) bool {
 	return ch >= 'ก' && ch <= '๛' || ch == '.'
 }
 
-func wordbreakLongest(dict Dictionary, sentence string, wb *WordBreak) {
+func wordbreakLongest(dict Dictionary, sentence string) ([]string, string) {
 	// words, unknown, _ := wordBreakRight(dict, sentence)
+	var rwords, lwords, xwords []string
+	var runknown, lunknown, xunknown string
+
 	for {
-		words, unknown, _ := wordBreakRight(dict, sentence)
-		wordsLen := len(words)
+		rwords, runknown, _ = wordBreakRight(dict, sentence)
+		rwordsLen := len(rwords)
 		switch {
-		case wordsLen > 2:
-			wordBreakLeft(dict, words[wordsLen-1]+unknown)
+		case runknown == "":
+			return rwords, runknown
+		case rwordsLen == 0:
+			lwords, lunknown, _ = wordBreakLeft(dict, runknown)
+		case rwordsLen > 2:
+			lwords, lunknown, _ = wordBreakLeft(dict, runknown+rwords[rwordsLen-1]+rwords[rwordsLen-2])
+			rwords = rwords[:rwordsLen-2]
+		case rwordsLen == 2:
+			lwords, lunknown, _ = wordBreakLeft(dict, runknown+rwords[rwordsLen-1])
+			rwords = rwords[:rwordsLen-1]
+		case rwordsLen == 1:
+			lwords, lunknown, _ = wordBreakLeft(dict, runknown)
 		}
 
-		for _, v := range words {
-			wb.mapWord[v] = struct{}{}
+		rwords = append(rwords, lwords...)
+		lunknown = strings.Replace(lunknown, ".", " ", -1)
+
+		lwordLen := len(lwords)
+		switch {
+		case lwordLen == 0:
+			return rwords, lunknown
+		case lunknown == "":
+			return rwords, lunknown
+		case len(lunknown) == len(runknown):
+			return rwords, lunknown
+		case lwordLen > 2:
+			xwords, xunknown = wordbreakLongest(dict, lwords[lwordLen-2]+lwords[lwordLen-1]+lunknown)
+		case lwordLen == 2:
+			xwords, xunknown = wordbreakLongest(dict, lwords[lwordLen-1]+lunknown)
+		case lwordLen == 1:
+			xwords, xunknown = wordbreakLongest(dict, lunknown)
 		}
 
-		if unknown != "" {
-			wb.mapUnknown[unknown] = struct{}{}
-		}
+		return append(rwords, xwords...), xunknown
 	}
 }
 
