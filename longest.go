@@ -1,9 +1,6 @@
 package tsplitter
 
 import (
-	"fmt"
-
-	// "fmt"
 	"strings"
 	"unicode/utf8"
 )
@@ -52,8 +49,8 @@ func Split(dict Dictionary, str string) *WordBreak {
 	}
 
 	for _, sentence := range sentences {
-		fmt.Println(sentence)
-		w.AddWordAndUnknown(wordbreakLongest(dict, sentence))
+		// fmt.Println(sentence)
+		w.AddWordAndUnknown(wordbreakLeftFirst(dict, sentence))
 	}
 
 	w.toArray()
@@ -67,7 +64,7 @@ func removeSpecialChar(str string) string {
 		"\"", " ", "-", " ", ")", " ", "(", " ", "{", " ", "}", " ",
 		"...", "", "..", "", "…", "", ",", " ", ":", " ", "|", " ",
 		"?", " ", "[", " ", "]", " ", "\\", " ", "\r", " ", "\r\n",
-		" ", "\n", " ", "*", "", "\t", "", "|", " ", "/", " ", "+", " ",
+		" ", "\n", " ", "*", "", "\t", "", "|", " ", "/", " ", "+", " ", "ๆ", "",
 	)
 
 	return r.Replace(str)
@@ -81,30 +78,119 @@ func isThaiChar(ch rune) bool {
 	return ch >= 'ก' && ch <= '๛' || ch == '.'
 }
 
-func wordbreakLongest(dict Dictionary, sentence string) ([]string, string) {
-	// words, unknown, _ := wordBreakRight(dict, sentence)
+func wordbreakRightLeft(dict Dictionary, sentence string) ([]string, string) {
+	lwords, lunknown, _ := wordBreakRight(dict, sentence)
+	for index, word := range lwords {
+		lwords = append(lwords[:index], lwords[index+1:]...)
+		newwords, newunknown, _ := wordBreakLeft(dict, word)
+		lwords = append(lwords, newwords...)
+		lwords = append(lwords, newunknown)
+	}
+
+	if len(lunknown) > 10 {
+		newwords, newunknown, _ := wordBreakLeft(dict, lunknown)
+		lwords = append(lwords, newwords...)
+		lunknown = newunknown
+	}
+
+	return lwords, lunknown
+}
+
+func wordbreakLeftFirst(dict Dictionary, sentence string) ([]string, string) {
+
 	var rwords, lwords, xwords []string
 	var runknown, lunknown, xunknown string
+	for {
+		lwords, lunknown, _ = wordBreakLeft(dict, sentence)
 
+		lwordsLen := len(lwords)
+		// fmt.Println("Left", lwords, lunknown)
+		switch {
+		case len(lunknown) == 1:
+			lwords[lwordsLen-1] = lwords[lwordsLen-1] + lunknown
+			return lwords, ""
+		case lunknown == "":
+			return lwords, lunknown
+		case lwordsLen == 0:
+			rwords, runknown, _ = wordBreakRight(dict, lunknown)
+		case lwordsLen > 2:
+			word1 := lwords[lwordsLen-1:][0]
+			word2 := lwords[lwordsLen-2:][0]
+			lwords = lwords[:lwordsLen-2]
+			// fmt.Println("Case Right", word2+word1+lunknown)
+			rwords, runknown, _ = wordBreakRight(dict, word2+word1+lunknown)
+		case lwordsLen == 2:
+			word1 := lwords[lwordsLen-1:][0]
+			lwords = lwords[:lwordsLen-1]
+			// fmt.Println("Case Right", word1+lunknown)
+			rwords, runknown, _ = wordBreakRight(dict, word1+lunknown)
+		case lwordsLen == 1:
+			rwords, runknown, _ = wordBreakRight(dict, lunknown)
+		}
+		// fmt.Println("Right", rwords, runknown)
+
+		runknown = strings.Replace(runknown, ".", " ", -1)
+
+		rwordLen := len(rwords)
+		switch {
+		case len(runknown) == 1:
+			rwords[rwordLen-1] = runknown + rwords[lwordsLen-1]
+			return rwords, ""
+		case rwordLen == 0:
+			return lwords, runknown
+		case runknown == "":
+			return lwords, runknown
+		case len(lunknown) == len(runknown):
+			return lwords, runknown
+		case rwordLen > 2:
+			word1 := rwords[rwordLen-1:][0]
+			word2 := rwords[rwordLen-2:][0]
+			lwords = append(lwords, rwords[:rwordLen-2]...)
+			// fmt.Println("Merge", lwords, runknown+word1+word2)
+			xwords, xunknown = wordbreakLeftFirst(dict, runknown+word1+word2)
+		case rwordLen == 2:
+			word1 := rwords[rwordLen-1:][0]
+			lwords = append(lwords, rwords[:rwordLen-1]...)
+			// fmt.Println("Merge", lwords, runknown+word1)
+			xwords, xunknown = wordbreakLeftFirst(dict, runknown+word1)
+		case rwordLen == 1:
+			lwords = append(lwords, rwords[:rwordLen]...)
+			xwords, xunknown = wordbreakLeftFirst(dict, runknown)
+		}
+
+		return append(lwords, xwords...), xunknown
+	}
+}
+
+func wordbreakRightFirst(dict Dictionary, sentence string) ([]string, string) {
+
+	var rwords, lwords, xwords []string
+	var runknown, lunknown, xunknown string
 	for {
 		rwords, runknown, _ = wordBreakRight(dict, sentence)
 		rwordsLen := len(rwords)
+		// fmt.Println("Right", rwords, runknown)
 		switch {
 		case runknown == "":
 			return rwords, runknown
 		case rwordsLen == 0:
 			lwords, lunknown, _ = wordBreakLeft(dict, runknown)
 		case rwordsLen > 2:
-			lwords, lunknown, _ = wordBreakLeft(dict, runknown+rwords[rwordsLen-1]+rwords[rwordsLen-2])
+			word1 := rwords[rwordsLen-1:][0]
+			word2 := rwords[rwordsLen-2:][0]
 			rwords = rwords[:rwordsLen-2]
+			lwords, lunknown, _ = wordBreakLeft(dict, runknown+word1+word2)
 		case rwordsLen == 2:
-			lwords, lunknown, _ = wordBreakLeft(dict, runknown+rwords[rwordsLen-1])
+			word1 := rwords[rwordsLen-1:][0]
 			rwords = rwords[:rwordsLen-1]
+			// fmt.Println("Case Left", runknown+word1)
+			lwords, lunknown, _ = wordBreakLeft(dict, runknown+word1)
 		case rwordsLen == 1:
+			// fmt.Println("Case Left", runknown)
 			lwords, lunknown, _ = wordBreakLeft(dict, runknown)
 		}
+		// fmt.Println("Left", lwords, lunknown)
 
-		rwords = append(rwords, lwords...)
 		lunknown = strings.Replace(lunknown, ".", " ", -1)
 
 		lwordLen := len(lwords)
@@ -116,11 +202,19 @@ func wordbreakLongest(dict Dictionary, sentence string) ([]string, string) {
 		case len(lunknown) == len(runknown):
 			return rwords, lunknown
 		case lwordLen > 2:
-			xwords, xunknown = wordbreakLongest(dict, lwords[lwordLen-2]+lwords[lwordLen-1]+lunknown)
+			word1 := lwords[lwordLen-1:][0]
+			word2 := lwords[lwordLen-2:][0]
+			rwords = append(rwords, lwords[:lwordLen-2]...)
+			// fmt.Println("Merge", rwords, word2+word1+lunknown)
+			xwords, xunknown = wordbreakRightFirst(dict, word2+word1+lunknown)
 		case lwordLen == 2:
-			xwords, xunknown = wordbreakLongest(dict, lwords[lwordLen-1]+lunknown)
+			word1 := lwords[lwordLen-1:][0]
+			rwords = append(rwords, lwords[:lwordLen-1]...)
+			// fmt.Println("Merge", rwords, word1+lunknown)
+			xwords, xunknown = wordbreakRightFirst(dict, word1+lunknown)
 		case lwordLen == 1:
-			xwords, xunknown = wordbreakLongest(dict, lunknown)
+			rwords = append(rwords, lwords[:lwordLen]...)
+			xwords, xunknown = wordbreakRightFirst(dict, lunknown)
 		}
 
 		return append(rwords, xwords...), xunknown
@@ -186,7 +280,7 @@ func wordBreakRight(dict Dictionary, sentence string) ([]string, string, int) {
 
 		if len(sentence) == 0 {
 			if match == 0 {
-				return words, fullSentence[maxPos-lastMatch-pos:], lastMatch
+				return words, fullSentence[:maxPos-lastMatch], lastMatch
 			} else {
 				words = append(words, fullSentence[maxPos-lastMatch-match:maxPos-lastMatch])
 				lastMatch += match
@@ -284,7 +378,7 @@ func wordBreakRight(dict Dictionary, sentence string) ([]string, string, int) {
 
 // 		if len(m.sentence) == 0 {
 // 			if m.match == "" {
-// 				fmt.Println("all match", matches)
+// fmt.Println("all match", matches)
 
 // 				// if m.isThai {
 // 				// 	if len(matches) > 0 {

@@ -131,7 +131,7 @@ func TestLongestMatch(t *testing.T) {
 
 	// txt := "แล้วคุณอยากให้ยิ่งลักษณ์ได้ผลประโยชน์จากการรัฐประหารลอยนวลจากการปล่อยปละละเลยให้พรรคพวกและเครือข่ายผลประโยชน์คอร์รัปชั่นโดยเฉพาะอย่างยิ่งในโครงการรับจำนำข้าวหรือครับ"
 
-	txt := "ผมก็บอกไปตามความจริงว่าต้องไปกินข้าวกับตาที่บ้านพร้อมตริน"
+	txt := "บ้านพร้อมตริน"
 	// file, err := os.Open("text.txt")
 	// if err != nil {
 	// 	panic(err)
@@ -145,7 +145,13 @@ func TestLongestMatch(t *testing.T) {
 
 	s := Split(dict, txt)
 	all := s.All()
-	fmt.Println(len(all), all)
+	fmt.Println(len(all), len(s.Unknown))
+	fmt.Println("")
+	fmt.Println("Word")
+	fmt.Println(s.Words)
+	fmt.Println("")
+	fmt.Println("Unknown")
+	fmt.Println(s.Unknown)
 
 }
 
@@ -156,18 +162,18 @@ func BenchmarkLongestMatch(b *testing.B) {
 
 	// txt := "แล้วคุณอยากให้ยิ่งลักษณ์ได้ผลประโยชน์จากการรัฐประหารลอยนวลจากการปล่อยปละละเลยให้พรรคพวกและเครือข่ายผลประโยชน์คอร์รัปชั่นโดยเฉพาะอย่างยิ่งในโครงการรับจำนำข้าวหรือครับ"
 
-	txt := "ผมก็บอกไปตามความจริงว่าต้องไปกินข้าวกับตาที่บ้านพร้อมตริน"
+	// txt := "ผมก็บอกไปตามความจริงว่าต้องไปกินข้าวกับตาที่บ้านพร้อมตริน"
 
 	dict := NewFileDict("dictionary.txt")
 
-	// file, err := os.Open("text.txt")
-	// if err != nil {
-	// 	panic(err)
-	// }
+	file, err := os.Open("text.txt")
+	if err != nil {
+		panic(err)
+	}
 
-	// buffer := bytes.NewBuffer(nil)
-	// buffer.ReadFrom(file)
-	// txt := buffer.String()
+	buffer := bytes.NewBuffer(nil)
+	buffer.ReadFrom(file)
+	txt := buffer.String()
 
 	b.ReportAllocs()
 	b.ResetTimer()
