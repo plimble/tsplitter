@@ -1,6 +1,7 @@
 package tsplitter
 
 import (
+	// "fmt"
 	"strings"
 	"unicode/utf8"
 )
@@ -22,27 +23,27 @@ func maximumMatch(dict Dictionary, str string) []string {
 	// fmt.Println("")
 	// fmt.Println("start", sentences)
 	for index := 0; index < len(sentences); index++ {
-		if len(sentences[index]) > 150 {
-			sentences = append(sentences, sentences[index][150:])
-			sentences[index] = sentences[index][:150]
-			// fmt.Println("split", sentences[index], "|", sentences)
-		}
+		// if len(sentences[index]) > 150 {
+		// 	sentences = append(sentences, sentences[index][150:])
+		// 	sentences[index] = sentences[index][:150]
+		// 	// fmt.Println("split", sentences[index], "|", sentences)
+		// }
 
 		segments := searchSegments(dict, sentences[index])
 		// fmt.Println("Get", segments.Segments, len(segments.Segments), segments.unknowCount, segments.unknowLen)
 
-		if len(segments.Segments) == 1 {
-			result = append(result, sentences...)
-			break
-		}
+		// if len(segments.Segments) == 1 {
+		// 	result = append(result, sentences...)
+		// 	break
+		// }
 
-		if segments.unknowLen > 0 && index < len(sentences)-1 {
-			for i := 1; i <= segments.unknowLen; i++ {
-				sentences[index+1] = segments.Segments[len(segments.Segments)-i] + sentences[index+1]
-			}
-			// fmt.Println("merge", sentences[index+1], len(sentences[index+1]))
-			segments.Segments = segments.Segments[:len(segments.Segments)-segments.unknowLen]
-		}
+		// if segments.unknowLen > 0 && index < len(sentences)-1 {
+		// 	for i := 1; i <= segments.unknowLen; i++ {
+		// 		sentences[index+1] = segments.Segments[len(segments.Segments)-i] + sentences[index+1]
+		// 	}
+		// 	// fmt.Println("merge", sentences[index+1], len(sentences[index+1]))
+		// 	segments.Segments = segments.Segments[:len(segments.Segments)-segments.unknowLen]
+		// }
 
 		result = append(result, segments.Segments...)
 	}
@@ -62,6 +63,7 @@ func searchSegments(dict Dictionary, sentence string) *bestSegment {
 	hasUnknown := true
 
 	for index, v := range segments {
+		// fmt.Println("POS", v.Segments)
 		if v.unknowCount == 0 {
 			hasUnknown = false
 			if len(v.Segments) < fullMatch {
