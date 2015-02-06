@@ -106,7 +106,7 @@ func wordbreakLeftFirst(dict Dictionary, sentence string) ([]string, string) {
 		lwordsLen := len(lwords)
 		// fmt.Println("Left", lwords, lunknown)
 		switch {
-		case len(lunknown) == 1:
+		case len(lunknown) == 3 && lwordsLen > 0:
 			lwords[lwordsLen-1] = lwords[lwordsLen-1] + lunknown
 			return lwords, ""
 		case lunknown == "":
@@ -133,8 +133,9 @@ func wordbreakLeftFirst(dict Dictionary, sentence string) ([]string, string) {
 
 		rwordLen := len(rwords)
 		switch {
-		case len(runknown) == 1:
+		case len(runknown) == 3 && rwordLen > 0:
 			rwords[rwordLen-1] = runknown + rwords[lwordsLen-1]
+
 			return rwords, ""
 		case rwordLen == 0:
 			return lwords, runknown
