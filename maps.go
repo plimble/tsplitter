@@ -1,50 +1,48 @@
 package tsplitter
 
 type OrderSet struct {
-	keys   []int
-	values map[int]string
+	keys   map[string]int
+	values []string
 	index  int
 }
 
 func NewOrderSet() *OrderSet {
 	return &OrderSet{
-		values: make(map[int]string),
+		keys: make(map[string]int),
 	}
 }
 
 //Append value
 func (m *OrderSet) Add(str ...string) {
 	for i := 0; i < len(str); i++ {
-		m.index++
-		m.keys = append(m.keys, m.index)
-		m.values[m.index] = str[i]
+		if _, has := m.keys[str[i]]; !has {
+			m.keys[str[i]] = len(m.values) + 1
+			m.values = append(m.values, str[i])
+		}
 	}
 }
 
 func (m *OrderSet) ConcatLast(str string) {
-	key := m.keys[len(m.keys)-1]
-	m.values[key] += str
+	key := len(m.values) - 1
+	newStr := m.values[key] + str
+	delete(m.keys, m.values[key])
+	m.values[key] = newStr
+	m.keys[newStr] = key
 }
 
 func (m *OrderSet) Size() int {
-	return len(m.keys)
+	return len(m.values)
 }
 
 func (m *OrderSet) RemoveLast() string {
-	key := m.keys[len(m.keys)-1]
+	key := len(m.values) - 1
 	last := m.values[key]
-
-	delete(m.values, key)
-	m.keys = m.keys[:key]
+	delete(m.keys, last)
+	m.values = m.values[:key]
 
 	return last
 }
 
 func (m *OrderSet) All() []string {
-	slice := make([]string, len(m.keys))
-	for i, k := range m.keys {
-		slice[i] = m.values[k]
-	}
-
-	return slice
+	return m.values
 }
