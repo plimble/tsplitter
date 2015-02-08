@@ -58,14 +58,6 @@ func removeSpecialChar(str string) string {
 	return r.Replace(str)
 }
 
-func removeSpecialCharSecond(str string) string {
-	r := strings.NewReplacer(
-		".", " ", "-", " ",
-	)
-
-	return r.Replace(str)
-}
-
 func chunkStrings(str string) []string {
 	return strings.Fields(str)
 }
@@ -266,19 +258,28 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 	}
 }
 
-func mergeAmbiguous(dict Dictionary, words []string) []string {
-	maxWordlen := len(words) - 1
-	for i := 0; i < maxWordlen; i++ {
-		_, size := utf8.DecodeLastRuneInString(words[i])
-		newWord := words[i][len(words[i])-size:] + words[i+1]
-		if dict.Exist(newWord) {
-			//merge
-			newWord = words[i] + words[i+1]
-			words = append(words[:i], words[i+2:]...)
-			words = append(words, newWord)
-			maxWordlen = len(words) - 1
-		}
-	}
+// func mergeAmbiguous(dict Dictionary, prevRune rune, word string) string {
+// 	newWord := string(prevRune) + word
+// 	dict.Exist(newWord)
+// 	if dict.Exist(newWord){
+// 		return newWord
+// 	}
 
-	return words
-}
+// 	return ""
+
+// 	maxWordlen := len(words) - 1
+
+// 	for i := 0; i < maxWordlen; i++ {
+// 		_, size := utf8.DecodeLastRuneInString(words[i])
+// 		newWord := words[i][len(words[i])-size:] + words[i+1]
+// 		if dict.Exist(newWord) {
+// 			//merge
+// 			newWord = words[i] + words[i+1]
+// 			words = append(words[:i], words[i+2:]...)
+// 			words = append(words, newWord)
+// 			maxWordlen = len(words) - 1
+// 		}
+// 	}
+
+// 	return words
+// }
