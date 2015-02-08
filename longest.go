@@ -5,35 +5,23 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	noneType = iota
+	knownType
+	ambiguousType
+	unknownType
+)
+
 type WordBreak struct {
-	Words      []string
-	Unknown    []string
-	mapWord    map[string]struct{}
-	mapUnknown map[string]struct{}
+	Known     *OrderSet
+	Ambiguous *OrderSet
+	Unknown   *OrderSet
+	lastType  int
 }
 
 func (w *WordBreak) All() []string {
-	return append(w.Words, w.Unknown...)
-}
 
-func (w *WordBreak) toArray() {
-	for k, _ := range w.mapWord {
-		w.Words = append(w.Words, k)
-	}
-
-	for k, _ := range w.mapUnknown {
-		w.Unknown = append(w.Unknown, k)
-	}
-}
-
-func (w *WordBreak) AddWordAndUnknown(words []string, unknown string) {
-	for _, v := range words {
-		w.mapWord[v] = struct{}{}
-	}
-
-	if unknown != "" {
-		w.mapUnknown[unknown] = struct{}{}
-	}
+	return append(w.Known.All(), append(w.Ambiguous.All(), w.Unknown.All()...)...)
 }
 
 func Split(dict Dictionary, str string) *WordBreak {
@@ -44,16 +32,15 @@ func Split(dict Dictionary, str string) *WordBreak {
 	sentences := chunkStrings(str)
 
 	w := &WordBreak{
-		mapWord:    make(map[string]struct{}),
-		mapUnknown: make(map[string]struct{}),
+		Known:     NewOrderSet(),
+		Unknown:   NewOrderSet(),
+		Ambiguous: NewOrderSet(),
 	}
 
 	for _, sentence := range sentences {
 		// fmt.Println(sentence)
-		w.AddWordAndUnknown(wordbreakLeftFirst(dict, sentence))
+		wordbreakLeftFirst(w, dict, sentence)
 	}
-
-	w.toArray()
 
 	return w
 }
@@ -61,10 +48,19 @@ func Split(dict Dictionary, str string) *WordBreak {
 func removeSpecialChar(str string) string {
 	r := strings.NewReplacer(
 		"!", "", "'", "", "‘", " ", "’", " ", "“", " ", "”", " ",
-		"\"", " ", "-", " ", ")", " ", "(", " ", "{", " ", "}", " ",
+		"\"", " ", ")", " ", "(", " ", "{", " ", "}", " ",
 		"...", "", "..", "", "…", "", ",", " ", ":", " ", "|", " ",
 		"?", " ", "[", " ", "]", " ", "\\", " ", "\r", " ", "\r\n",
 		" ", "\n", " ", "*", "", "\t", "", "|", " ", "/", " ", "+", " ", "ๆ", "",
+		"~", " ", "=", " ", ">", " ", "<", " ",
+	)
+
+	return r.Replace(str)
+}
+
+func removeSpecialCharSecond(str string) string {
+	r := strings.NewReplacer(
+		".", " ", "-", " ",
 	)
 
 	return r.Replace(str)
@@ -74,189 +70,210 @@ func chunkStrings(str string) []string {
 	return strings.Fields(str)
 }
 
+func isFrontDep(s rune) bool {
+	switch s {
+	case 'ะ', '้', 'า', 'ำ', 'ิ', 'ี', 'ึ', 'ื', 'ุ', 'ู', 'ๅ', '็', '์', 'ํ':
+		return true
+	}
+
+	return false
+}
+
+func isRearDep(s rune) bool {
+	switch s {
+	case 'ั', 'ื', 'เ', 'แ', 'โ', 'ใ', 'ไ', 'ํ':
+		return true
+	}
+
+	return false
+}
+
+func isTonal(s rune) bool {
+	switch s {
+	case '่', '้', '๊', '๋':
+		return true
+	}
+
+	return false
+}
+
+func isEnding(s rune) bool {
+	switch s {
+	case 'ๆ', 'ฯ':
+		return true
+	}
+
+	return false
+}
+
 func isThaiChar(ch rune) bool {
 	return ch >= 'ก' && ch <= '๛' || ch == '.'
 }
 
-func wordbreakRightLeft(dict Dictionary, sentence string) ([]string, string) {
-	lwords, lunknown, _ := wordBreakRight(dict, sentence)
-	for index, word := range lwords {
-		lwords = append(lwords[:index], lwords[index+1:]...)
-		newwords, newunknown, _ := wordBreakLeft(dict, word)
-		lwords = append(lwords, newwords...)
-		lwords = append(lwords, newunknown)
-	}
-
-	if len(lunknown) > 10 {
-		newwords, newunknown, _ := wordBreakLeft(dict, lunknown)
-		lwords = append(lwords, newwords...)
-		lunknown = newunknown
-	}
-
-	return lwords, lunknown
+func isEnglish(ch rune) bool {
+	return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z')
 }
 
-func wordbreakLeftFirst(dict Dictionary, sentence string) ([]string, string) {
-
-	var rwords, lwords, xwords []string
-	var runknown, lunknown, xunknown string
-	for {
-		lwords, lunknown, _ = wordBreakLeft(dict, sentence)
-
-		lwordsLen := len(lwords)
-		// fmt.Println("Left", lwords, lunknown)
-		switch {
-		case len(lunknown) == 3 && lwordsLen > 0:
-			lwords[lwordsLen-1] = lwords[lwordsLen-1] + lunknown
-			return lwords, ""
-		case lunknown == "":
-			return lwords, lunknown
-		case lwordsLen == 0:
-			rwords, runknown, _ = wordBreakRight(dict, lunknown)
-		case lwordsLen > 2:
-			word1 := lwords[lwordsLen-1:][0]
-			word2 := lwords[lwordsLen-2:][0]
-			lwords = lwords[:lwordsLen-2]
-			// fmt.Println("Case Right", word2+word1+lunknown)
-			rwords, runknown, _ = wordBreakRight(dict, word2+word1+lunknown)
-		case lwordsLen == 2:
-			word1 := lwords[lwordsLen-1:][0]
-			lwords = lwords[:lwordsLen-1]
-			// fmt.Println("Case Right", word1+lunknown)
-			rwords, runknown, _ = wordBreakRight(dict, word1+lunknown)
-		case lwordsLen == 1:
-			rwords, runknown, _ = wordBreakRight(dict, lunknown)
-		}
-		// fmt.Println("Right", rwords, runknown)
-
-		runknown = strings.Replace(runknown, ".", " ", -1)
-
-		rwordLen := len(rwords)
-		switch {
-		case len(runknown) == 3 && rwordLen > 0:
-			rwords[rwordLen-1] = runknown + rwords[lwordsLen-1]
-
-			return rwords, ""
-		case rwordLen == 0:
-			return lwords, runknown
-		case runknown == "":
-			return lwords, runknown
-		case len(lunknown) == len(runknown):
-			return lwords, runknown
-		case rwordLen > 2:
-			word1 := rwords[rwordLen-1:][0]
-			word2 := rwords[rwordLen-2:][0]
-			lwords = append(lwords, rwords[:rwordLen-2]...)
-			// fmt.Println("Merge", lwords, runknown+word1+word2)
-			xwords, xunknown = wordbreakLeftFirst(dict, runknown+word1+word2)
-		case rwordLen == 2:
-			word1 := rwords[rwordLen-1:][0]
-			lwords = append(lwords, rwords[:rwordLen-1]...)
-			// fmt.Println("Merge", lwords, runknown+word1)
-			xwords, xunknown = wordbreakLeftFirst(dict, runknown+word1)
-		case rwordLen == 1:
-			lwords = append(lwords, rwords[:rwordLen]...)
-			xwords, xunknown = wordbreakLeftFirst(dict, runknown)
-		}
-
-		return append(lwords, xwords...), xunknown
-	}
+func isDigit(ch rune) bool {
+	return (ch >= '0' && ch <= '9') || (ch >= '๑' && ch <= '๙')
 }
 
-func wordbreakRightFirst(dict Dictionary, sentence string) ([]string, string) {
-
-	var rwords, lwords, xwords []string
-	var runknown, lunknown, xunknown string
-	for {
-		rwords, runknown, _ = wordBreakRight(dict, sentence)
-		rwordsLen := len(rwords)
-		// fmt.Println("Right", rwords, runknown)
-		switch {
-		case runknown == "":
-			return rwords, runknown
-		case rwordsLen == 0:
-			lwords, lunknown, _ = wordBreakLeft(dict, runknown)
-		case rwordsLen > 2:
-			word1 := rwords[rwordsLen-1:][0]
-			word2 := rwords[rwordsLen-2:][0]
-			rwords = rwords[:rwordsLen-2]
-			lwords, lunknown, _ = wordBreakLeft(dict, runknown+word1+word2)
-		case rwordsLen == 2:
-			word1 := rwords[rwordsLen-1:][0]
-			rwords = rwords[:rwordsLen-1]
-			// fmt.Println("Case Left", runknown+word1)
-			lwords, lunknown, _ = wordBreakLeft(dict, runknown+word1)
-		case rwordsLen == 1:
-			// fmt.Println("Case Left", runknown)
-			lwords, lunknown, _ = wordBreakLeft(dict, runknown)
-		}
-		// fmt.Println("Left", lwords, lunknown)
-
-		lunknown = strings.Replace(lunknown, ".", " ", -1)
-
-		lwordLen := len(lwords)
-		switch {
-		case lwordLen == 0:
-			return rwords, lunknown
-		case lunknown == "":
-			return rwords, lunknown
-		case len(lunknown) == len(runknown):
-			return rwords, lunknown
-		case lwordLen > 2:
-			word1 := lwords[lwordLen-1:][0]
-			word2 := lwords[lwordLen-2:][0]
-			rwords = append(rwords, lwords[:lwordLen-2]...)
-			// fmt.Println("Merge", rwords, word2+word1+lunknown)
-			xwords, xunknown = wordbreakRightFirst(dict, word2+word1+lunknown)
-		case lwordLen == 2:
-			word1 := lwords[lwordLen-1:][0]
-			rwords = append(rwords, lwords[:lwordLen-1]...)
-			// fmt.Println("Merge", rwords, word1+lunknown)
-			xwords, xunknown = wordbreakRightFirst(dict, word1+lunknown)
-		case lwordLen == 1:
-			rwords = append(rwords, lwords[:lwordLen]...)
-			xwords, xunknown = wordbreakRightFirst(dict, lunknown)
-		}
-
-		return append(rwords, xwords...), xunknown
-	}
+func isSpecialChar(ch rune) bool {
+	return ch <= '~' || ch == 'ๆ' || ch == 'ฯ' || ch == '“' || ch == '”' || ch == ','
 }
 
-func wordBreakLeft(dict Dictionary, sentence string) ([]string, string, int) {
-	var isThai bool = true
-	var match, pos, lastMatch int = 0, 0, 0
-	var fullSentence string = sentence
-	words := []string{}
+func wordbreakLeftFirst(w *WordBreak, dict Dictionary, sentence string) {
+	match := 0
+	pos := 0
+	sentlen := len(sentence)
 
-	for len(sentence) > 0 {
-		ch, size := utf8.DecodeRuneInString(sentence)
-		sentence = sentence[size:]
+	for pos < sentlen {
+		ch, size := utf8.DecodeRuneInString(sentence[pos:])
 
 		pos += size
 
-		if isThai && !isThaiChar(ch) {
-			isThai = false
-		}
-
-		if isThai && dict.Exist(fullSentence[lastMatch:lastMatch+pos]) {
+		if !isThaiChar(ch) {
+			for pos < sentlen && !isThaiChar(ch) {
+				ch, size = utf8.DecodeRuneInString(sentence[pos:])
+				pos += size
+			}
+			if pos < sentlen {
+				pos -= size
+			}
+			w.Known.Add(sentence[match:pos])
+			w.lastType = knownType
 			match = pos
-		}
+		} else {
+			pos = wordBreakLeft(w, dict, sentence, match)
+			match = pos
 
-		if len(sentence) == 0 {
-			if match == 0 {
-				return words, fullSentence[lastMatch:], lastMatch
-			} else {
-				words = append(words, fullSentence[lastMatch:lastMatch+match])
-				lastMatch += match
-				sentence = fullSentence[lastMatch:]
-				match = 0
-				pos = 0
-				isThai = true
+			// for pos < sentlen && isThaiChar(ch) {
+			// 	ch, size = utf8.DecodeRuneInString(sentence[pos:])
+			// 	pos += size
+			// }
+			// if pos < sentlen {
+			// 	pos -= size
+			// }
+			// w.Known.Add(sentence[lastmatch:pos])
+			// lastmatch = pos
+		}
+	}
+}
+
+func nextWordValid(dict Dictionary, beginPos int, sentence string) bool {
+	pos := beginPos
+	sentLen := len(sentence)
+
+	if beginPos == sentLen {
+		return true
+	} else if ch, _ := utf8.DecodeRuneInString(sentence[beginPos:]); ch < '~' {
+		return true
+	} else {
+		for pos < sentLen {
+			_, size := utf8.DecodeRuneInString(sentence[pos:])
+			pos += size
+
+			if dict.Exist(sentence[beginPos:pos]) {
+				return true
 			}
 		}
 	}
 
-	return words, "", lastMatch
+	return false
+}
+
+func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int) int {
+	pos := beginPos
+	match := 0
+	longestMatch := 0
+	sentlen := len(sentence)
+	numValidPos := 0
+	nextBeginPos := beginPos
+	var beginRune rune = 0
+	var ch rune
+	var size int
+	var prevRune rune = 0
+
+	for pos < sentlen {
+		ch, size = utf8.DecodeRuneInString(sentence[pos:])
+
+		if pos == beginPos {
+			nextBeginPos += size
+			beginRune = ch
+		}
+
+		pos += size
+		if dict.Exist(sentence[beginPos:pos]) {
+			match = pos
+			if nextWordValid(dict, pos, sentence) {
+				longestMatch = pos
+				numValidPos++
+			}
+		}
+	}
+
+	if beginPos > 0 {
+		ch, _ = utf8.DecodeLastRuneInString(sentence[:beginPos])
+		prevRune = ch
+	}
+
+	if match == 0 {
+		size = w.Unknown.Size() + w.Known.Size() + w.Ambiguous.Size()
+		if size > 0 && (isFrontDep(beginRune) || isTonal(beginRune) || isRearDep(prevRune) || w.lastType == unknownType) {
+			switch w.lastType {
+			case unknownType:
+				w.Unknown.ConcatLast(sentence[beginPos:nextBeginPos])
+			case knownType:
+				w.Unknown.Add(w.Known.RemoveLast() + sentence[beginPos:nextBeginPos])
+			case ambiguousType:
+				w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:nextBeginPos])
+			}
+			w.lastType = unknownType
+		} else {
+			w.Unknown.Add(sentence[beginPos:nextBeginPos])
+			w.lastType = unknownType
+		}
+		return nextBeginPos
+	} else {
+		if longestMatch == 0 {
+			if isRearDep(prevRune) {
+				switch w.lastType {
+				case unknownType:
+					w.Unknown.ConcatLast(sentence[beginPos:match])
+				case knownType:
+					w.Unknown.Add(w.Known.RemoveLast() + sentence[beginPos:match])
+				case ambiguousType:
+					w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:match])
+				}
+				w.lastType = unknownType
+			} else {
+				w.Known.Add(sentence[beginPos:match])
+				w.lastType = knownType
+			}
+			return match
+		} else {
+			if isRearDep(prevRune) {
+
+				switch w.lastType {
+				case unknownType:
+					w.Unknown.ConcatLast(sentence[beginPos:longestMatch])
+				case knownType:
+					w.Unknown.Add(w.Known.RemoveLast() + sentence[beginPos:longestMatch])
+				case ambiguousType:
+					w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:longestMatch])
+				}
+				w.lastType = unknownType
+			} else if numValidPos == 1 {
+				w.Known.Add(sentence[beginPos:longestMatch])
+				w.lastType = knownType
+			} else {
+				w.Ambiguous.Add(sentence[beginPos:longestMatch])
+				w.lastType = ambiguousType
+			}
+
+			return longestMatch
+		}
+	}
 }
 
 func wordBreakRight(dict Dictionary, sentence string) ([]string, string, int) {
@@ -281,6 +298,12 @@ func wordBreakRight(dict Dictionary, sentence string) ([]string, string, int) {
 
 		if len(sentence) == 0 {
 			if match == 0 {
+				words = mergeAmbiguous(dict, words)
+				if !isThai {
+					words = append(words, fullSentence[:maxPos-lastMatch])
+					return words, "", maxPos
+				}
+
 				return words, fullSentence[:maxPos-lastMatch], lastMatch
 			} else {
 				words = append(words, fullSentence[maxPos-lastMatch-match:maxPos-lastMatch])
@@ -293,7 +316,36 @@ func wordBreakRight(dict Dictionary, sentence string) ([]string, string, int) {
 		}
 	}
 
+	words = mergeAmbiguous(dict, words)
+
 	return words, "", lastMatch
+}
+
+func mergeAmbiguous(dict Dictionary, words []string) []string {
+	maxWordlen := len(words) - 1
+	for i := 0; i < maxWordlen; i++ {
+		_, size := utf8.DecodeLastRuneInString(words[i])
+		newWord := words[i][len(words[i])-size:] + words[i+1]
+		if dict.Exist(newWord) {
+			//merge
+			newWord = words[i] + words[i+1]
+			words = append(words[:i], words[i+2:]...)
+			words = append(words, newWord)
+			maxWordlen = len(words) - 1
+		}
+	}
+
+	return words
+}
+
+func isLastCharSara(word string) bool {
+	ch, _ := utf8.DecodeLastRuneInString(word)
+	switch ch {
+	case '์', 'ุ', 'ู', 'ึ', 'ะ', '๊', '็', '้', '่', 'า', 'ิ':
+		return true
+	}
+
+	return false
 }
 
 // func (m *longestMatch) Match(dict Dictionary, str string) map[string]struct{} {
