@@ -7,7 +7,7 @@ const (
 	unknownType
 )
 
-//Word after splited
+//Words after splited
 type Words struct {
 	words     []string
 	wordTypes []int
@@ -70,12 +70,12 @@ func (w *Words) isLastType(wordType int) bool {
 	return w.wordTypes[w.size-1] == wordType
 }
 
-//return all words
+//All return all words
 func (w *Words) All() []string {
 	return w.words
 }
 
-//return deduplicate words which not found in dictionary
+//Unknown return deduplicate words which not found in dictionary
 func (w *Words) Unknown() []string {
 	result := make([]string, len(w.unknownDeDup))
 	i := 0
@@ -87,7 +87,7 @@ func (w *Words) Unknown() []string {
 	return result
 }
 
-//return deduplicate and ambiguous words which found in dictionary
+//Known return deduplicate and ambiguous words which found in dictionary
 func (w *Words) Known() []string {
 	result := make([]string, len(w.knownDeDup))
 	i := 0
@@ -99,7 +99,7 @@ func (w *Words) Known() []string {
 	return result
 }
 
-//return size of words
+//Size return size of words
 func (w *Words) Size() int {
 	return w.size
 }

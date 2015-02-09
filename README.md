@@ -29,5 +29,5 @@ Thai word break written in GO
   }
 ```
 
-### Document
+### Documentation
  - [GoDoc](http://godoc.org/github.com/plimble/tsplitter)
