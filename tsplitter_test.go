@@ -47,6 +47,7 @@ func TestIsSpecialChar(t *testing.T) {
 func TestIsEnding(t *testing.T) {
 	assert.True(t, isEnding('ๆ'))
 	assert.True(t, isEnding('ฯ'))
+	assert.False(t, isEnding('?'))
 }
 
 func BenchmarkLongestMatch(b *testing.B) {
