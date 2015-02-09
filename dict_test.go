@@ -26,12 +26,3 @@ func TestFileDictExist(t *testing.T) {
 	assert.False(t, dict.Exist("นั้น1"))
 	assert.False(t, dict.Exist(""))
 }
-
-func BenchmarkFileDictExist(b *testing.B) {
-	dict := NewFileDict("dictionary.txt")
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		dict.Exist("นั้น")
-	}
-}
