@@ -1,4 +1,4 @@
-tsplitter [![godoc badge](http://godoc.org/github.com/plimble/tsplitter?status.png)](http://godoc.org/github.com/plimble/tsplitter)   [![gocover badge](http://gocover.io/_badge/github.com/plimble/tsplitter)](http://gocover.io/github.com/plimble/tsplitter) [![Build Status](https://travis-ci.org/plimble/tsplitter.svg?branch=master)](https://travis-ci.org/plimble/tsplitter)
+tsplitter [![godoc badge](http://godoc.org/github.com/plimble/tsplitter?status.png)](http://godoc.org/github.com/plimble/tsplitter)   [![gocover badge](http://gocover.io/_badge/github.com/plimble/tsplitter)](http://gocover.io/github.com/plimble/tsplitter) [![Build Status](https://travis-ci.org/plimble/tsplitter.svg?branch=master)](https://travis-ci.org/plimble/tsplitter) [![Go Report Card](http://goreportcard.com/badge/plimble/tsplitter)](http:/goreportcard.com/report/plimble/tsplitter)
 =========
 
 Thai word break written in GO
