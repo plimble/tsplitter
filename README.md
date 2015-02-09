@@ -31,3 +31,7 @@ Thai word break written in GO
 
 ### Documentation
  - [GoDoc](http://godoc.org/github.com/plimble/tsplitter)
+
+###Contributing
+
+If you'd like to help out with the project. You can put up a Pull Request.
