@@ -1,9 +1,12 @@
 package tsplitter
 
+import (
+	"sync"
+)
+
 const (
 	noneType = iota
 	knownType
-	ambiguousType
 	unknownType
 )
 
@@ -15,6 +18,7 @@ type Words struct {
 
 	knownDeDup   map[string]struct{}
 	unknownDeDup map[string]struct{}
+	lockDedup    sync.RWMutex
 }
 
 func newWords() *Words {
@@ -41,12 +45,14 @@ func (w *Words) addDedup(word string, wordType int) {
 }
 
 func (w *Words) removeDedup(word string, wordType int) {
+	w.lockDedup.Lock()
 	switch wordType {
 	case knownType:
 		delete(w.knownDeDup, word)
 	case unknownType:
 		delete(w.unknownDeDup, word)
 	}
+	w.lockDedup.Unlock()
 }
 
 func (w *Words) addKnown(word string) {
@@ -73,6 +79,24 @@ func (w *Words) isLastType(wordType int) bool {
 //All return all words
 func (w *Words) All() []string {
 	return w.words
+}
+
+//AllDedup return all deduplicate words
+func (w *Words) AllDedup() []string {
+	result := make([]string, len(w.knownDeDup)+len(w.unknownDeDup))
+	i := 0
+
+	for k := range w.knownDeDup {
+		result[i] = k
+		i++
+	}
+
+	for k := range w.unknownDeDup {
+		result[i] = k
+		i++
+	}
+
+	return result
 }
 
 //Unknown return deduplicate words which not found in dictionary
