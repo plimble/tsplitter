@@ -16,7 +16,7 @@ func Split(dict Dictionary, str string) *Words {
 	w := newWords()
 
 	for _, sentence := range sentences {
-		wordbreakLeftFirst(w, dict, sentence)
+		searchLeft(w, dict, sentence)
 	}
 
 	return w
@@ -91,7 +91,7 @@ func isSpecialChar(ch rune) bool {
 	return ch <= '~' || ch == 'ๆ' || ch == 'ฯ' || ch == '“' || ch == '”' || ch == ','
 }
 
-func wordbreakLeftFirst(w *Words, dict Dictionary, sentence string) {
+func searchLeft(w *Words, dict Dictionary, sentence string) {
 	match := 0
 	pos := 0
 	sentlen := len(sentence)
