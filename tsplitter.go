@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 )
 
+//Split sentence into words
 func Split(dict Dictionary, str string) *Words {
 
 	str = strings.Replace(str, "ํา", "ำ", -1)
@@ -141,14 +142,14 @@ func nextWordValid(dict Dictionary, beginPos int, sentence string) bool {
 
 func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int {
 	pos := beginPos
-	match := -1
-	longestMatch := 0
+	matchPos := -1
+	longestPos := 0
 	sentlen := len(sentence)
 	nextBeginPos := beginPos
-	var beginRune rune = 0
+	var beginRune rune
 	var ch rune
 	var size int
-	var prevRune rune = 0
+	var prevRune rune
 
 	for pos < sentlen {
 		ch, size = utf8.DecodeRuneInString(sentence[pos:])
@@ -160,9 +161,9 @@ func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int
 
 		pos += size
 		if dict.Exist(sentence[beginPos:pos]) {
-			match = pos
+			matchPos = pos
 			if nextWordValid(dict, pos, sentence) {
-				longestMatch = pos
+				longestPos = pos
 			}
 		}
 	}
@@ -171,29 +172,37 @@ func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int
 		prevRune, _ = utf8.DecodeLastRuneInString(sentence[:beginPos])
 	}
 
-	if match == -1 {
-		if w.size > 0 && (isFrontDep(beginRune) || isTonal(beginRune) || isRearDep(prevRune) || w.isLastType(unknownType)) {
-			w.concatLast(sentence[beginPos:nextBeginPos], unknownType)
-		} else {
-			w.addUnKnown(sentence[beginPos:nextBeginPos])
-		}
-		return nextBeginPos
-	} else {
-		if longestMatch == 0 {
-			if isRearDep(prevRune) {
-				w.concatLast(sentence[beginPos:match], unknownType)
-			} else {
-				w.add(sentence[beginPos:match], knownType)
-			}
-			return match
-		} else {
-			if isRearDep(prevRune) {
-				w.concatLast(sentence[beginPos:longestMatch], unknownType)
-			} else {
-				w.add(sentence[beginPos:longestMatch], knownType)
-			}
+	if matchPos == -1 {
+		return notMatch(w, beginPos, nextBeginPos, beginRune, prevRune, sentence)
+	}
 
-			return longestMatch
+	return match(w, beginPos, matchPos, longestPos, prevRune, sentence)
+}
+
+func notMatch(w *Words, beginPos, nextBeginPos int, beginRune, prevRune rune, sentence string) int {
+	if w.size > 0 && (isFrontDep(beginRune) || isTonal(beginRune) || isRearDep(prevRune) || w.isLastType(unknownType)) {
+		w.concatLast(sentence[beginPos:nextBeginPos], unknownType)
+	} else {
+		w.addUnKnown(sentence[beginPos:nextBeginPos])
+	}
+	return nextBeginPos
+}
+
+func match(w *Words, beginPos, matchPos, longestPos int, prevRune rune, sentence string) int {
+	if longestPos == 0 {
+		if isRearDep(prevRune) {
+			w.concatLast(sentence[beginPos:matchPos], unknownType)
+		} else {
+			w.add(sentence[beginPos:matchPos], knownType)
 		}
+		return matchPos
+	} else {
+		if isRearDep(prevRune) {
+			w.concatLast(sentence[beginPos:longestPos], unknownType)
+		} else {
+			w.add(sentence[beginPos:longestPos], knownType)
+		}
+
+		return longestPos
 	}
 }

@@ -5,14 +5,19 @@ import (
 	"os"
 )
 
+//Dictionary interface
 type Dictionary interface {
 	Exist(word string) bool
 }
 
+//File System Dictionary
+//File format should be one word per line
+//word should not have any space
 type FileDict struct {
 	dict map[string]struct{}
 }
 
+// Create new file dictionary where filename is dictionary path
 func NewFileDict(filename string) *FileDict {
 	fd := &FileDict{
 		dict: make(map[string]struct{}),
@@ -42,6 +47,7 @@ func (f *FileDict) removeBOM(word []byte) []byte {
 	return word
 }
 
+//Check word is exist in dictionary
 func (f *FileDict) Exist(word string) bool {
 	if word == "" {
 		return false
