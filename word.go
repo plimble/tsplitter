@@ -76,7 +76,7 @@ func (w *Words) All() []string {
 func (w *Words) Unknown() []string {
 	result := make([]string, len(w.unknownDeDup))
 	i := 0
-	for k, _ := range w.unknownDeDup {
+	for k := range w.unknownDeDup {
 		result[i] = k
 		i++
 	}
@@ -87,7 +87,7 @@ func (w *Words) Unknown() []string {
 func (w *Words) Known() []string {
 	result := make([]string, len(w.knownDeDup))
 	i := 0
-	for k, _ := range w.knownDeDup {
+	for k := range w.knownDeDup {
 		result[i] = k
 		i++
 	}
