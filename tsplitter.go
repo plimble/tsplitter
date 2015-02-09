@@ -196,13 +196,13 @@ func match(w *Words, beginPos, matchPos, longestPos int, prevRune rune, sentence
 			w.add(sentence[beginPos:matchPos], knownType)
 		}
 		return matchPos
-	} else {
-		if isRearDep(prevRune) {
-			w.concatLast(sentence[beginPos:longestPos], unknownType)
-		} else {
-			w.add(sentence[beginPos:longestPos], knownType)
-		}
-
-		return longestPos
 	}
+
+	if isRearDep(prevRune) {
+		w.concatLast(sentence[beginPos:longestPos], unknownType)
+	} else {
+		w.add(sentence[beginPos:longestPos], knownType)
+	}
+
+	return longestPos
 }
