@@ -5,37 +5,14 @@ import (
 	"unicode/utf8"
 )
 
-const (
-	noneType = iota
-	knownType
-	ambiguousType
-	unknownType
-)
-
-type WordBreak struct {
-	Known     *OrderSet
-	Ambiguous *OrderSet
-	Unknown   *OrderSet
-	lastType  int
-}
-
-func (w *WordBreak) All() []string {
-
-	return append(w.Known.All(), append(w.Ambiguous.All(), w.Unknown.All()...)...)
-}
-
-func Split(dict Dictionary, str string) *WordBreak {
+func Split(dict Dictionary, str string) *Words {
 
 	str = strings.Replace(str, "ํา", "ำ", -1)
 
 	str = removeSpecialChar(str)
 	sentences := chunkStrings(str)
 
-	w := &WordBreak{
-		Known:     NewOrderSet(),
-		Unknown:   NewOrderSet(),
-		Ambiguous: NewOrderSet(),
-	}
+	w := newWords()
 
 	for _, sentence := range sentences {
 		wordbreakLeftFirst(w, dict, sentence)
@@ -113,7 +90,7 @@ func isSpecialChar(ch rune) bool {
 	return ch <= '~' || ch == 'ๆ' || ch == 'ฯ' || ch == '“' || ch == '”' || ch == ','
 }
 
-func wordbreakLeftFirst(w *WordBreak, dict Dictionary, sentence string) {
+func wordbreakLeftFirst(w *Words, dict Dictionary, sentence string) {
 	match := 0
 	pos := 0
 	sentlen := len(sentence)
@@ -131,8 +108,7 @@ func wordbreakLeftFirst(w *WordBreak, dict Dictionary, sentence string) {
 			if pos < sentlen {
 				pos -= size
 			}
-			w.Known.Add(sentence[match:pos])
-			w.lastType = knownType
+			w.addKnown(sentence[match:pos])
 			match = pos
 		} else {
 			pos = wordBreakLeft(w, dict, sentence, match)
@@ -163,12 +139,12 @@ func nextWordValid(dict Dictionary, beginPos int, sentence string) bool {
 	return false
 }
 
-func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int) int {
+func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int {
 	pos := beginPos
-	match := 0
+	match := -1
 	longestMatch := 0
 	sentlen := len(sentence)
-	numValidPos := false
+	numValidPos := 0
 	nextBeginPos := beginPos
 	var beginRune rune = 0
 	var ch rune
@@ -188,7 +164,7 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 			match = pos
 			if nextWordValid(dict, pos, sentence) {
 				longestMatch = pos
-				numValidPos = true
+				numValidPos++
 			}
 		}
 	}
@@ -197,57 +173,28 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 		prevRune, _ = utf8.DecodeLastRuneInString(sentence[:beginPos])
 	}
 
-	if match == 0 {
-		size = w.Unknown.Size() + w.Known.Size() + w.Ambiguous.Size()
-		if size > 0 && (isFrontDep(beginRune) || isTonal(beginRune) || isRearDep(prevRune) || w.lastType == unknownType) {
-			switch w.lastType {
-			case unknownType:
-				w.Unknown.ConcatLast(sentence[beginPos:nextBeginPos])
-			case knownType:
-				w.Unknown.Add(w.Known.RemoveLast() + sentence[beginPos:nextBeginPos])
-			case ambiguousType:
-				w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:nextBeginPos])
-			}
-			w.lastType = unknownType
+	if match == -1 {
+		if w.size > 0 && (isFrontDep(beginRune) || isTonal(beginRune) || isRearDep(prevRune) || w.isLastType(unknownType)) {
+			w.concatLast(sentence[beginPos:nextBeginPos], unknownType)
 		} else {
-			w.Unknown.Add(sentence[beginPos:nextBeginPos])
-			w.lastType = unknownType
+			w.addUnKnown(sentence[beginPos:nextBeginPos])
 		}
 		return nextBeginPos
 	} else {
 		if longestMatch == 0 {
 			if isRearDep(prevRune) {
-				switch w.lastType {
-				case unknownType:
-					w.Unknown.ConcatLast(sentence[beginPos:match])
-				case knownType:
-					w.Unknown.Add(w.Known.RemoveLast() + sentence[beginPos:match])
-				case ambiguousType:
-					w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:match])
-				}
-				w.lastType = unknownType
+				w.concatLast(sentence[beginPos:match], unknownType)
 			} else {
-				w.Known.Add(sentence[beginPos:match])
-				w.lastType = knownType
+				w.add(sentence[beginPos:match], knownType)
 			}
 			return match
 		} else {
 			if isRearDep(prevRune) {
-				switch w.lastType {
-				case unknownType:
-					w.Unknown.ConcatLast(sentence[beginPos:longestMatch])
-				case knownType:
-					w.Unknown.Add(w.Known.RemoveLast() + sentence[beginPos:longestMatch])
-				case ambiguousType:
-					w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:longestMatch])
-				}
-				w.lastType = unknownType
-			} else if numValidPos {
-				w.Known.Add(sentence[beginPos:longestMatch])
-				w.lastType = knownType
+				w.concatLast(sentence[beginPos:longestMatch], unknownType)
+			} else if numValidPos == 1 {
+				w.add(sentence[beginPos:longestMatch], knownType)
 			} else {
-				w.Ambiguous.Add(sentence[beginPos:longestMatch])
-				w.lastType = ambiguousType
+				w.add(sentence[beginPos:longestMatch], ambiguousType)
 			}
 
 			return longestMatch

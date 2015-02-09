@@ -18,17 +18,16 @@ func TestSplit(t *testing.T) {
 	dict := NewFileDict("dictionary.txt")
 
 	s := Split(dict, txt)
-	all := s.All()
-	fmt.Println(len(all), s.Unknown.Size())
+	fmt.Println(s.Size())
 	fmt.Println("")
-	fmt.Println("Known")
-	fmt.Println(s.Known.All())
+	fmt.Println("Known", len(s.Known()))
+	fmt.Println(s.Known())
 	fmt.Println("")
-	fmt.Println("Ambiguous")
-	fmt.Println(s.Ambiguous.All())
+	fmt.Println("Ambiguous", len(s.Ambiguous()))
+	fmt.Println(s.Ambiguous())
 	fmt.Println("")
-	fmt.Println("Unknown")
-	fmt.Println(s.Unknown.All())
+	fmt.Println("Unknown", len(s.Unknown()))
+	fmt.Println(s.Unknown())
 
 }
 
@@ -41,17 +40,18 @@ func TestSplitFile(t *testing.T) {
 	dict := NewFileDict("dictionary.txt")
 
 	s := Split(dict, string(buffer))
-	all := s.All()
-	fmt.Println(len(all), s.Unknown.Size())
+	fmt.Println(s.Size())
+	fmt.Println("All", len(s.Known()))
+	fmt.Println(s.All())
 	fmt.Println("")
-	fmt.Println("Known")
-	fmt.Println(s.Known.All())
+	fmt.Println("Known", len(s.Known()))
+	fmt.Println(s.Known())
 	fmt.Println("")
-	fmt.Println("Ambiguous")
-	fmt.Println(s.Ambiguous.All())
+	fmt.Println("Ambiguous", len(s.Ambiguous()))
+	fmt.Println(s.Ambiguous())
 	fmt.Println("")
-	fmt.Println("Unknown")
-	fmt.Println(s.Unknown.All())
+	fmt.Println("Unknown", len(s.Unknown()))
+	fmt.Println(s.Unknown())
 }
 
 func BenchmarkLongestMatch(b *testing.B) {
