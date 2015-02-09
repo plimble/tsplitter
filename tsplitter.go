@@ -144,7 +144,6 @@ func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int
 	match := -1
 	longestMatch := 0
 	sentlen := len(sentence)
-	numValidPos := 0
 	nextBeginPos := beginPos
 	var beginRune rune = 0
 	var ch rune
@@ -164,7 +163,6 @@ func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int
 			match = pos
 			if nextWordValid(dict, pos, sentence) {
 				longestMatch = pos
-				numValidPos++
 			}
 		}
 	}
@@ -191,39 +189,11 @@ func wordBreakLeft(w *Words, dict Dictionary, sentence string, beginPos int) int
 		} else {
 			if isRearDep(prevRune) {
 				w.concatLast(sentence[beginPos:longestMatch], unknownType)
-			} else if numValidPos == 1 {
-				w.add(sentence[beginPos:longestMatch], knownType)
 			} else {
-				w.add(sentence[beginPos:longestMatch], ambiguousType)
+				w.add(sentence[beginPos:longestMatch], knownType)
 			}
 
 			return longestMatch
 		}
 	}
 }
-
-// func mergeAmbiguous(dict Dictionary, prevRune rune, word string) string {
-// 	newWord := string(prevRune) + word
-// 	dict.Exist(newWord)
-// 	if dict.Exist(newWord){
-// 		return newWord
-// 	}
-
-// 	return ""
-
-// 	maxWordlen := len(words) - 1
-
-// 	for i := 0; i < maxWordlen; i++ {
-// 		_, size := utf8.DecodeLastRuneInString(words[i])
-// 		newWord := words[i][len(words[i])-size:] + words[i+1]
-// 		if dict.Exist(newWord) {
-// 			//merge
-// 			newWord = words[i] + words[i+1]
-// 			words = append(words[:i], words[i+2:]...)
-// 			words = append(words, newWord)
-// 			maxWordlen = len(words) - 1
-// 		}
-// 	}
-
-// 	return words
-// }
