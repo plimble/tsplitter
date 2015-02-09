@@ -26,8 +26,12 @@ func (m *OrderSet) ConcatLast(str string) {
 	key := len(m.values) - 1
 	newStr := m.values[key] + str
 	delete(m.keys, m.values[key])
-	m.values[key] = newStr
-	m.keys[newStr] = key
+	if _, has := m.keys[newStr]; !has {
+		m.values[key] = newStr
+		m.keys[newStr] = key
+	} else {
+		m.values = m.values[:key]
+	}
 }
 
 func (m *OrderSet) Size() int {

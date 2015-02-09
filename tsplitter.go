@@ -38,7 +38,6 @@ func Split(dict Dictionary, str string) *WordBreak {
 	}
 
 	for _, sentence := range sentences {
-		// fmt.Println(sentence)
 		wordbreakLeftFirst(w, dict, sentence)
 	}
 
@@ -169,7 +168,7 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 	match := 0
 	longestMatch := 0
 	sentlen := len(sentence)
-	numValidPos := 0
+	numValidPos := false
 	nextBeginPos := beginPos
 	var beginRune rune = 0
 	var ch rune
@@ -189,14 +188,13 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 			match = pos
 			if nextWordValid(dict, pos, sentence) {
 				longestMatch = pos
-				numValidPos++
+				numValidPos = true
 			}
 		}
 	}
 
 	if beginPos > 0 {
-		ch, _ = utf8.DecodeLastRuneInString(sentence[:beginPos])
-		prevRune = ch
+		prevRune, _ = utf8.DecodeLastRuneInString(sentence[:beginPos])
 	}
 
 	if match == 0 {
@@ -235,7 +233,6 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 			return match
 		} else {
 			if isRearDep(prevRune) {
-
 				switch w.lastType {
 				case unknownType:
 					w.Unknown.ConcatLast(sentence[beginPos:longestMatch])
@@ -245,7 +242,7 @@ func wordBreakLeft(w *WordBreak, dict Dictionary, sentence string, beginPos int)
 					w.Unknown.Add(w.Ambiguous.RemoveLast() + sentence[beginPos:longestMatch])
 				}
 				w.lastType = unknownType
-			} else if numValidPos == 1 {
+			} else if numValidPos {
 				w.Known.Add(sentence[beginPos:longestMatch])
 				w.lastType = knownType
 			} else {
