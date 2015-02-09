@@ -2,6 +2,7 @@ package tsplitter
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -15,11 +16,13 @@ func TestSplit(t *testing.T) {
 	s := Split(dict, txt)
 	fmt.Println(s.Size())
 	fmt.Println("")
-	fmt.Println("Known", len(s.Known()))
-	fmt.Println(s.Known())
+	fmt.Println("All", len(s.All()))
+	fmt.Println(s.All())
 	fmt.Println("")
 	fmt.Println("Unknown", len(s.Unknown()))
 	fmt.Println(s.Unknown())
+	assert.Len(t, s.All(), 251)
+	assert.Len(t, s.Unknown(), 0)
 
 }
 
