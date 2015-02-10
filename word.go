@@ -5,8 +5,7 @@ import (
 )
 
 const (
-	noneType = iota
-	knownType
+	knownType = iota
 	unknownType
 )
 
@@ -15,16 +14,16 @@ type Words struct {
 	words     []string
 	wordTypes []int
 	size      int
-
-	knownDeDup   map[string]struct{}
-	unknownDeDup map[string]struct{}
-	lockDedup    sync.RWMutex
+	deDup     []map[string]struct{}
+	lockDedup sync.RWMutex
 }
 
 func newWords() *Words {
 	return &Words{
-		knownDeDup:   make(map[string]struct{}),
-		unknownDeDup: make(map[string]struct{}),
+		deDup: []map[string]struct{}{
+			make(map[string]struct{}),
+			make(map[string]struct{}),
+		},
 	}
 }
 
@@ -36,22 +35,12 @@ func (w *Words) add(word string, wordType int) {
 }
 
 func (w *Words) addDedup(word string, wordType int) {
-	switch wordType {
-	case knownType:
-		w.knownDeDup[word] = struct{}{}
-	case unknownType:
-		w.unknownDeDup[word] = struct{}{}
-	}
+	w.deDup[wordType][word] = struct{}{}
 }
 
 func (w *Words) removeDedup(word string, wordType int) {
 	w.lockDedup.Lock()
-	switch wordType {
-	case knownType:
-		delete(w.knownDeDup, word)
-	case unknownType:
-		delete(w.unknownDeDup, word)
-	}
+	delete(w.deDup[wordType], word)
 	w.lockDedup.Unlock()
 }
 
@@ -83,15 +72,27 @@ func (w *Words) All() []string {
 
 //AllDedup return all deduplicate words
 func (w *Words) AllDedup() []string {
-	result := make([]string, len(w.knownDeDup)+len(w.unknownDeDup))
-	i := 0
-
-	for k := range w.knownDeDup {
-		result[i] = k
-		i++
+	allLen := 0
+	for _, v := range w.deDup {
+		allLen += len(v)
 	}
 
-	for k := range w.unknownDeDup {
+	result := make([]string, allLen)
+	i := 0
+	for _, v := range w.deDup {
+		for k := range v {
+			result[i] = k
+			i++
+		}
+	}
+
+	return result
+}
+
+func (w *Words) getDedup(wordType int) []string {
+	result := make([]string, len(w.deDup[wordType]))
+	i := 0
+	for k := range w.deDup[wordType] {
 		result[i] = k
 		i++
 	}
@@ -101,26 +102,12 @@ func (w *Words) AllDedup() []string {
 
 //Unknown return deduplicate words which not found in dictionary
 func (w *Words) Unknown() []string {
-	result := make([]string, len(w.unknownDeDup))
-	i := 0
-	for k := range w.unknownDeDup {
-		result[i] = k
-		i++
-	}
-
-	return result
+	return w.getDedup(unknownType)
 }
 
 //Known return deduplicate and ambiguous words which found in dictionary
 func (w *Words) Known() []string {
-	result := make([]string, len(w.knownDeDup))
-	i := 0
-	for k := range w.knownDeDup {
-		result[i] = k
-		i++
-	}
-
-	return result
+	return w.getDedup(knownType)
 }
 
 //Size return size of words

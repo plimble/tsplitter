@@ -11,25 +11,25 @@ func TestWordsAdd(t *testing.T) {
 	assert.Equal(t, "123", w.words[0])
 	assert.Equal(t, knownType, w.wordTypes[0])
 	assert.Equal(t, 1, w.size)
-	_, has := w.knownDeDup["123"]
+	_, has := w.deDup[knownType]["123"]
 	assert.True(t, has)
-	assert.Len(t, w.knownDeDup, 1)
+	assert.Len(t, w.deDup[knownType], 1)
 
 	w.addUnKnown("456")
 	assert.Equal(t, "456", w.words[1])
 	assert.Equal(t, unknownType, w.wordTypes[1])
 	assert.Equal(t, 2, w.size)
-	_, has = w.unknownDeDup["456"]
+	_, has = w.deDup[unknownType]["456"]
 	assert.True(t, has)
-	assert.Len(t, w.unknownDeDup, 1)
+	assert.Len(t, w.deDup[unknownType], 1)
 
 	w.addKnown("123")
 	assert.Equal(t, "123", w.words[2])
 	assert.Equal(t, knownType, w.wordTypes[2])
 	assert.Equal(t, 3, w.size)
-	_, has = w.knownDeDup["123"]
+	_, has = w.deDup[knownType]["123"]
 	assert.True(t, has)
-	assert.Len(t, w.knownDeDup, 1)
+	assert.Len(t, w.deDup[knownType], 1)
 }
 
 func TestWordsConcatLast(t *testing.T) {
@@ -41,13 +41,13 @@ func TestWordsConcatLast(t *testing.T) {
 
 	assert.Equal(t, w.words[1], "456789")
 	assert.Len(t, w.words, 2)
-	assert.Len(t, w.knownDeDup, 1)
-	assert.Len(t, w.unknownDeDup, 1)
-	_, has := w.unknownDeDup["456789"]
+	assert.Len(t, w.deDup[knownType], 1)
+	assert.Len(t, w.deDup[unknownType], 1)
+	_, has := w.deDup[unknownType]["456789"]
 	assert.True(t, has)
-	_, has = w.knownDeDup["456"]
+	_, has = w.deDup[knownType]["456"]
 	assert.False(t, has)
-	_, has = w.knownDeDup["123"]
+	_, has = w.deDup[knownType]["123"]
 	assert.True(t, has)
 }
 
