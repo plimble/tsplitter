@@ -89,6 +89,25 @@ func (w *Words) AllDedup() []string {
 	return result
 }
 
+//AllDedup return all deduplicate words in terface type
+func (w *Words) AllDedupInterface() []interface{} {
+	allLen := 0
+	for _, v := range w.deDup {
+		allLen += len(v)
+	}
+
+	result := make([]interface{}, allLen)
+	i := 0
+	for _, v := range w.deDup {
+		for k := range v {
+			result[i] = k
+			i++
+		}
+	}
+
+	return result
+}
+
 func (w *Words) getDedup(wordType int) []string {
 	result := make([]string, len(w.deDup[wordType]))
 	i := 0
