@@ -1,4 +1,5 @@
 /*
+Package tsplitter
 Thai word break written in GO
 
 Example

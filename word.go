@@ -109,7 +109,7 @@ func (w *Words) AllDedupDelim(delim string) string {
 	return strings.Join(result, delim)
 }
 
-//AllDedup return all deduplicate words in terface type
+//AllDedupInterface return all deduplicate words in terface type
 func (w *Words) AllDedupInterface() []interface{} {
 	allLen := 0
 	for _, v := range w.deDup {
