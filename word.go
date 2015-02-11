@@ -1,6 +1,7 @@
 package tsplitter
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -87,6 +88,25 @@ func (w *Words) AllDedup() []string {
 	}
 
 	return result
+}
+
+//AllDedupDelim return all deduplicate words with delimiter
+func (w *Words) AllDedupDelim(delim string) string {
+	allLen := 0
+	for _, v := range w.deDup {
+		allLen += len(v)
+	}
+
+	result := make([]string, allLen)
+	i := 0
+	for _, v := range w.deDup {
+		for k := range v {
+			result[i] = k
+			i++
+		}
+	}
+
+	return strings.Join(result, delim)
 }
 
 //AllDedup return all deduplicate words in terface type
