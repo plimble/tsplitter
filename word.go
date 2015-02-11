@@ -144,9 +144,19 @@ func (w *Words) Unknown() []string {
 	return w.getDedup(unknownType)
 }
 
+//Unknown return deduplicate words which not found in dictionary with delim
+func (w *Words) UnknownDelim(delim string) string {
+	return strings.Join(w.getDedup(unknownType), delim)
+}
+
 //Known return deduplicate and ambiguous words which found in dictionary
 func (w *Words) Known() []string {
 	return w.getDedup(knownType)
+}
+
+//Known return deduplicate and ambiguous words which found in dictionary with delim
+func (w *Words) KnownDelim(delim string) string {
+	return strings.Join(w.getDedup(knownType), delim)
 }
 
 //Size return size of words
